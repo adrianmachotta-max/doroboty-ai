@@ -26,6 +26,10 @@ npm run dev
 
 Open http://127.0.0.1:3001. No environment file, account, database or additional service is required. Package installation requires access to the npm registry.
 
+### Optional production analytics
+
+For a published build, set `VITE_POSTHOG_KEY` to the PostHog project's public key in the hosting provider's production build environment. `VITE_POSTHOG_HOST` is optional and defaults to PostHog EU (`https://eu.i.posthog.com`). The app sends public pageviews and autocaptures link/button clicks; it excludes search queries, forms, sign-in, application and workspace screens. Localhost sends no analytics, and session recording is disabled. The key is injected at build time and is not committed to this repository.
+
 Select Anna or Marek as a candidate, Karolina or Tomasz as an employer, or the instructor. Publish a job, apply, switch person and record the employer decision. Changes survive reload in this browser; settings provide export, import and reset. AI and scores simulate prepared scenarios. Use example CVs only.
 
 ## Build and verify

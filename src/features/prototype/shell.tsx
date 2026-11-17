@@ -71,6 +71,8 @@ export function Shell() {
   const person = currentPerson(state);
   const { pathname } = useLocation();
   const workspace = pathname.startsWith("/app") && person;
+  const privateAnalyticsRoute =
+    pathname.startsWith("/app") || pathname.startsWith("/aplikuj") || pathname.startsWith("/auth");
   const [menuAt, setMenuAt] = useState<string | null>(null);
   const main = useRef<HTMLElement>(null);
   const lastPath = useRef(pathname);
@@ -123,7 +125,7 @@ export function Shell() {
         Przejdź do treści
       </a>
       {workspace ? (
-        <div className="app-frame">
+        <div className="app-frame" data-ph-no-autocapture>
           <div className="mobile-header">
             <Link to="/" className="brand">
               <BrandMark />
@@ -279,7 +281,13 @@ export function Shell() {
               </nav>
             </div>
           </header>
-          <main id="main" ref={main} tabIndex={-1} className="outline-none">
+          <main
+            id="main"
+            ref={main}
+            tabIndex={-1}
+            className="outline-none"
+            data-ph-no-autocapture={privateAnalyticsRoute ? "true" : undefined}
+          >
             {content}
           </main>
           <footer className="bg-muted/40 text-foreground shadow-[var(--gui-divider-top-shadow)]">
