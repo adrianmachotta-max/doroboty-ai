@@ -1,3 +1,4 @@
+import { usePostHog } from "@posthog/react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { CheckCircle2, FileText } from "lucide-react";
@@ -14,6 +15,7 @@ import { currentPerson, publishedJobs, stageLabels, MIN_APPLICATION_ANSWER_LENGT
 import { PageTitle, Empty, NotFound, Notice } from "./shell";
 import { CvAttachment } from "./cv-attachment";
 import { MatchScore } from "./match-score";
+import { posthogLog } from "@/lib/posthog-logs";
 import { RecruitingApplication } from "./recruiting-application";
 import { CandidateApplication } from "./candidate-application";
 
@@ -141,6 +143,7 @@ export function WorkspaceHome() {
 }
 export function ProfilePage({ preview = false }: { preview?: boolean }) {
   const { state, run } = usePrototype();
+  const posthog = usePostHog();
   const person = currentPerson(state)!;
   const [message, setMessage] = useState("");
   function save(e: FormEvent<HTMLFormElement>) {
@@ -156,8 +159,14 @@ export function ProfilePage({ preview = false }: { preview?: boolean }) {
           location: String(data.get("location")),
         },
       })
-    )
+    ) {
       setMessage("Profil został zapisany.");
+      if (
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+        import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      )
+        posthog.capture("candidate_profile_saved");
+    }
   }
   return (
     <>
@@ -232,6 +241,7 @@ export function SavedPage() {
 export function ApplyPage() {
   const { slug } = useParams();
   const { state, run } = usePrototype();
+  const posthog = usePostHog();
   const person = currentPerson(state)!;
   const navigate = useNavigate();
   const job = publishedJobs(state).find((x) => x.slug === slug);
@@ -281,9 +291,28 @@ export function ApplyPage() {
       document.getElementById("application-consent")?.focus();
       return;
     }
-    if (run({ type: "submit", jobId: job!.id, notes, generated, answer, consent })) {
+    const submittedJob = job!;
+    if (run({ type: "submit", jobId: submittedJob.id, notes, generated, answer, consent })) {
       submittedOnce.current = true;
       setSubmitted(true);
+      if (
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+        import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      ) {
+        posthog.capture("application_submitted", {
+          job_category: submittedJob.category,
+          remote_status: submittedJob.remoteStatus,
+          seniority: submittedJob.seniority,
+          contract: submittedJob.contract,
+        });
+        posthogLog.info("candidate application submitted", {
+          event: "application.submitted",
+          job_category: submittedJob.category,
+          remote_status: submittedJob.remoteStatus,
+          seniority: submittedJob.seniority,
+          contract: submittedJob.contract,
+        });
+      }
       if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         const rect = sendButton.current?.getBoundingClientRect();
         if (rect)
@@ -387,8 +416,18 @@ export function ApplyPage() {
                 disabled={submitted}
                 variant="outline"
                 onClick={() => {
-                  if (run({ type: "draft", jobId: job.id, notes, generated, answer }))
+                  if (run({ type: "draft", jobId: job.id, notes, generated, answer })) {
                     setMessage("Szkic został zapisany.");
+                    if (
+                      import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+                      import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+                    ) {
+                      posthog.capture("application_draft_saved", {
+                        has_answer: Boolean(answer.trim()),
+                        job_category: job.category,
+                      });
+                    }
+                  }
                 }}
               >
                 Zapisz szkic
